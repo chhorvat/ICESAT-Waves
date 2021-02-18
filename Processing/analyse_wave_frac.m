@@ -71,17 +71,6 @@ moving_wavy = [];
 sortvec = [];
 moving_ssh_no = []; 
 
-
-%% FSD-related things
-binary_floelength = []; 
-binary_floeid = []; 
-moving_floenum = []; 
-moving_floelength = []; 
-moving_CLD_mom_0 = []; 
-moving_CLD_mom_1 = []; 
-moving_CLD_mom_2 = []; 
-moving_CLD_mom_3 = []; 
-
 %%
 numtracks = length(timer); 
 
@@ -196,62 +185,6 @@ for i = 1:50;%numtracks
     moving_neg = cat(1,moving_neg,movsum(isneg,window_1k,'samplepoints',dist));
     moving_pos = cat(1,moving_pos,movsum(~isneg,window_1k,'samplepoints',dist)); 
         
-    %% FSD-related things
-    up = strfind([0,is_ocean'],[0 1]);
-    down = strfind([is_ocean',0],[1 0]);
-    
-    if ~isempty(up)
-        
-        toosmall = intersect(up,down);
-        up = setxor(up,toosmall)';
-        down = setxor(down,toosmall)';
-        
-        Uloc = up - 1;
-        Uloc(Uloc==0) = 1;
-        
-        floelen = dist(down) - dist(up);
-        floeloc = .5*(dist(down) + dist(up));
-        floeind = round(.5*(down + up));
-        floe_seglength = floelen./(down - up);
-        
-    end
-    
-    usable_floe = logical((floelen > 5).*(floe_seglength < 100));
-    usable_floe(1) = 0; % exclude endpoints
-    usable_floe(end) = 0; % exclude endpoints
-    
-    floelen = floelen(usable_floe);
-    floe_seglength = floe_seglength(usable_floe);
-    floeloc = floeloc(usable_floe);
-    floeind = floeind(usable_floe);
-    
-    % One at the location of a floe
-    % Zero otherwise
-    hasfloe = 0*dist;
-    hasfloe(floeind) = 1;
-    
-    % Length of floe, at the center location of each floe. Should find a
-    % way to add these up to avoid undercounting...
-    floe_lengths = 0*dist;
-    floe_lengths(floeind) = floelen;
-    
-    % Map of floe centers and floe lengths.
-    binary_floeid = cat(1,binary_floeid,hasfloe);
-    binary_floelength = cat(1,binary_floelength,floe_lengths);
-    moving_floenum = cat(1,moving_floenum,movsum(hasfloe,window_50k,'samplepoints',dist));
-    moving_floelength = cat(1,moving_floelength,movsum(floe_lengths,window_50k,'samplepoints',dist));
-    
-    % Sum up moments of the floe length distribution in each 50k window
-    mom0 =  movsum(hasfloe,window_50k,'samplepoints',dist);
-    mom1 = movsum(floe_lengths,window_50k,'samplepoints',dist);
-    mom2 = movsum(floe_lengths.^2,window_50k,'samplepoints',dist);
-    mom3 = movsum(floe_lengths.^3,window_50k,'samplepoints',dist);
-    
-    
-    moving_CLD_mom_0 = cat(1,moving_CLD_mom_0,mom0); 
-    moving_CLD_mom_1 = cat(1,moving_CLD_mom_1,mom0); 
-    moving_CLD_mom_2 = cat(1,moving_CLD_mom_2,mom0); 
-    moving_CLD_mom_3 = cat(1,moving_CLD_mom_3,mom0); 
      
 end
 
@@ -260,24 +193,6 @@ end
 % Get into a matrix and then sort it! 
 fieldmat = cell2mat(fieldmat);
 fieldmat = fieldmat(sortvec,:);
-
-%% FSD Code First
-
-% Criteria for inclusion of a location. Kind of already did it. 
-fprintf('\nMeasured %2.0f thousand chord lengths \n',sum(binary_floeid)/1e3);
-fprintf('Total chord length is %2.0f km \n',sum(binary_floelength)/1000);
-fprintf('Average chord length (number) is %2.0f m \n',sum(binary_floelength)/sum(binary_floeid));
-
-moving_MCL = moving_CLD_mom_1 ./ moving_CLD_mom_0; 
-moving_RCL = moving_CLD_mom_3 ./ moving_CLD_mom_0; 
-
-smallfloe_MCL = moving_MCL < 100; 
-midfloe_MCL = (moving_MCL >= 100) & (moving_MCL <= 1000); 
-bigfloe_MCL = (moving_MCL > 1000); 
-
-smallfloe_RCL = moving_RCL < 100; 
-midfloe_RCL = (moving_RCL >= 100) & (moving_RCL <= 1000); 
-bigfloe_RCL = (moving_RCL > 1000); 
 
 %% Now Wave Code
 
@@ -458,34 +373,8 @@ height_std_geo = accumarray(posloc,height_moving_std,[numel(lat_X) 1],@mean);
 % Accumulate wave energy into a single matrix
 wave_energy_geo = accumarray(posloc,moving_en,[numel(lat_X) 1],@sum);
 
-%% FSD Geographic Fields
-
-% Number of floes at each point
-floenum_geo = accumarray(posloc,binary_floeid,[numel(lat_X) 1],@sum);
-% Total floe length at each point
-floelength_geo = accumarray(posloc,binary_floelength,[numel(lat_X) 1],@sum);
-% Mean chord length at each point
-
-CLD_mom_0_geo = accumarray(posloc,moving_CLD_mom_0,[numel(lat_X) 1],@sum);
-CLD_mom_1_geo = accumarray(posloc,moving_CLD_mom_1,[numel(lat_X) 1],@sum);
-CLD_mom_2_geo = accumarray(posloc,moving_CLD_mom_2,[numel(lat_X) 1],@sum);
-CLD_mom_3_geo = accumarray(posloc,moving_CLD_mom_3,[numel(lat_X) 1],@sum);
-
-MCL_geo = CLD_mom_1_geo ./ CLD_mom_0_geo; 
-RCL_geo = CLD_mom_3_geo ./ CLD_mom_2_geo; 
-
-% Breakdown of % where made up of small, medium, or large floes. Useful
-% when comparing areas with lots of tracks on top of them. 
-smallfloe_MCL_geo = accumarray(posloc,smallfloe_MCL,[numel(lat_X) 1],@mean);
-midfloe_MCL_geo = accumarray(posloc,midfloe_MCL,[numel(lat_X) 1],@mean);
-bigfloe_MCL_geo = accumarray(posloc,bigfloe_MCL,[numel(lat_X) 1],@mean);
-
-smallfloe_RCL_geo = accumarray(posloc,smallfloe_RCL,[numel(lat_X) 1],@mean);
-midfloe_RCL_geo = accumarray(posloc,midfloe_RCL,[numel(lat_X) 1],@mean);
-bigfloe_RCL_geo = accumarray(posloc,bigfloe_RCL,[numel(lat_X) 1],@mean);
-
 %%
 
-disp(['Saving ' outdir]);
+% disp(['Saving ' outdir]);
 
-save(outdir,'lat_X','lon_X','*_geo','numsegs','numtracks');
+% save(outdir,'lat_X','lon_X','*_geo','numsegs','numtracks');
