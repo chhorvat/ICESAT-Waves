@@ -66,7 +66,6 @@ ssh_moving_std = [];
 ssh_neighbors = [];
 moving_neg = []; 
 moving_pos = []; 
-moving_wavy = []; 
 
 sortvec = [];
 moving_ssh_no = []; 
@@ -76,7 +75,7 @@ numtracks = length(timer);
 
 %
 % Compute distance along the track, in units of m.
-for i = 1:50;%numtracks
+for i = 1:numtracks
     %%
     lat = fieldmat{i,3};
     lon = fieldmat{i,4};
@@ -375,6 +374,6 @@ wave_energy_geo = accumarray(posloc,moving_en,[numel(lat_X) 1],@sum);
 
 %%
 
-% disp(['Saving ' outdir]);
+disp(['Saving ' outdir]);
 
-% save(outdir,'lat_X','lon_X','*_geo','numsegs','numtracks');
+save(outdir,'lat_X','lon_X','*_geo','numsegs','numtracks');

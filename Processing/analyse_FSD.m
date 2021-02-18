@@ -1,4 +1,4 @@
-% function analyse_FSD(file_path,outdir,gridname)
+function analyse_FSD(file_path,outdir,gridname)
 %%
 % A pointer for the .mat file with IS2 data.
 IS2data = matfile(file_path);
@@ -128,10 +128,19 @@ for i = 1:numtracks
         floeloc = .5*(dist(down) + dist(up));
         floeind = round(.5*(down + up));
         floe_seglength = floelen./(down - up);
+        floe_nsegs = down - up; 
+        
+       
+    else
+        
+        floelen = [];
+        floeloc = [];
+        floeind = [];
+        floe_seglength = [];
         
     end
     
-    usable_floe = logical((floelen > 5).*(floe_seglength < 100));
+    usable_floe = logical((floelen > 5).* (floe_seglength < 300)).*(floe_nsegs >= 3);
     usable_floe(1) = 0; % exclude endpoints
     usable_floe(end) = 0; % exclude endpoints
     
