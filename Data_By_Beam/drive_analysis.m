@@ -22,7 +22,7 @@ DO_REPLACE = 0;
 %   err
 % end
 %%
-gridname = '200km';
+gridname = '100km';
 
 
 addpath('../Processing/');
@@ -37,31 +37,29 @@ for i = 1:1 % length(hemi_dir)
     save_dir = [file_heading 'Processed/' hemi_dir{i} '-' gridname '/'];
     
     mkdir(save_dir);
-    mkdir([save_dir 'WAVES/']); 
-    mkdir([save_dir 'FSD/']); 
+    mkdir([save_dir 'WAVES/']);
+    mkdir([save_dir 'FSD/']);
     
     % par
     for filename = 1:length(files)
         
         disp('-----------------------------------------');
-        disp(['File at ' file_dir files(filename).name]);
+        disp(['File at ' file_dir '/' files(filename).name]);
         
         % Specific file save name
-        save_loc_waves = [save_dir 'WAVES/' files(filename).name];
-        save_loc_fsd = [save_dir 'FSD/' files(filename).name];
+        save_loc_waves = [save_dir 'WAVES/' files(filename).name(1:end-4)];
+        save_loc_fsd = [save_dir 'FSD/' files(filename).name(1:end-4)];
         
-        if DO_WAVES
+        
+        if (exist([save_loc_waves]) == 2) & (~DO_REPLACE)
             
-            if (exist([save_loc_waves]) == 2) & (~DO_REPLACE)
-                
-                disp('Already There');
-                
-            else
-                
-                disp(['Saving to ' save_loc_waves]);
-                analyse_wave_frac_affected([file_dir '/' files(filename).name],save_loc_waves,gridname);
-                
-            end
+            make_waves = 0;
+            disp('Already There');
+            
+        else
+            
+            make_waves = 1;
+            disp(['Saving wave files to ' save_loc_waves]);
             
         end
         
@@ -69,18 +67,21 @@ for i = 1:1 % length(hemi_dir)
             
             if (exist([save_loc_fsd]) == 2) & (~DO_REPLACE)
                 
+                make_fsd = 0;
                 disp('Already There');
                 
             else
                 
-                disp(['Saving to ' save_loc_fsd]);
-                analyse_fsd([file_dir '/' files(filename).name],save_loc_fsd,gridname);
+                make_fsd = 1;
+                
+                disp(['Saving FSD files to ' save_loc_fsd]);
                 
             end
             
         end
         
+        analyse_waves_and_FSD([file_dir '/' files(filename).name], ...
+            save_loc_waves,save_loc_fsd,gridname,make_waves,make_fsd);
+        
     end
-    
 end
-

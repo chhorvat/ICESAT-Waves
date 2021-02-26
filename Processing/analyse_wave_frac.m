@@ -70,6 +70,8 @@ moving_pos = [];
 sortvec = [];
 moving_ssh_no = []; 
 
+lenct = 0; 
+
 %%
 numtracks = length(timer); 
 
@@ -96,23 +98,38 @@ for i = 1:numtracks
         
     end
     
-    % Preprocess
-    dupes = find(diff(dist)==0)+1;
-    dist(dupes) = dist(dupes) + .01*abs(rand(size(dupes)));
+     % Preprocess
+    % Remove duplicate values
+    dupes = find(diff(dist)<0.5)+1;
+    dist(dupes) = []; 
+    
+    % dist(dupes) = dist(dupes) + .01*abs(rand(size(dupes)));
     [dist,b] = sort(dist);
     
-%     ssh_flag = fieldmat{i,8}; 
-%     ssh_flag = ssh_flag(b); 
-    
+    % 
+    % Dedupe and sort ice vector
     is_ice = fieldmat{i,7};
+    is_ice(dupes) = []; 
     is_ice = is_ice(b);
     
+    % Ocean is the stuff that isn't ice. 
+    is_ocean = is_ice > 1;
+    
+    % Sorting to put in order. Have indices of duplicate values first
+    % Keep in mind where in the initial vector we had a duplicate
+    dupevec = cat(1,dupevec,dupes + lenct); 
+   
+    % This adds the dupe vector by the size of the field
+    lenct = lenct + size(fieldmat{i,1},1); 
+
     is_ocean = is_ice > 1;
     
     height = fieldmat{i,1};
+    height(dupes) = []; 
     height = height(b);
     
     seg_len = fieldmat{i,2};
+    seg_len(dupes) = []; 
     seg_len = seg_len(b);
     
     % check to make sure all ice points are close to open water points
@@ -189,8 +206,9 @@ end
 
 %%
 
-% Get into a matrix and then sort it! 
+% Get into a matrix and then sort it!
 fieldmat = cell2mat(fieldmat);
+fieldmat(dupevec,:) = []; 
 fieldmat = fieldmat(sortvec,:);
 
 %% Now Wave Code
