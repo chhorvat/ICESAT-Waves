@@ -86,6 +86,7 @@ lenct = 0;
 %%
 numtracks = length(timer); % Number of tracks
 
+%%
 for i = 1:numtracks
     %%
     % First compute distance along track using lat and lon coordinates
@@ -308,13 +309,29 @@ disp('Finding Locations');
 % K nerest neighbor search into the loaded grid to find grid locations
 posloc_all = knnsearch(KDTree,[fieldmat(:,3) fieldmat(:,4)],'K',1);
 
+%%
 % Take the naive sea ice concentration as the fraction of segments divided
 % by the number of segments that are classified as ice or ocean
-conc_lead_geo = accumarray(posloc_all,(fieldmat(:,7) > 1).*(fieldmat(:,2)),[numel(lat_X) 1],@mean);
-conc_lead_geo = conc_lead_geo ./ accumarray(posloc_all,(fieldmat(:,7) > 0).*(fieldmat(:,2)),[numel(lat_X) 1],@mean);
+
+% Add up the total length of leads in each locatiom
+conc_lead_geo = accumarray(posloc_all,(fieldmat(:,7) > 1).*(fieldmat(:,2)),[numel(lat_X) 1],@sum);
+% Divide by the total length of ice. 
+conc_lead_geo = conc_lead_geo ./ accumarray(posloc_all,(fieldmat(:,7) > 0).*(fieldmat(:,2)),[numel(lat_X) 1],@sum);
+% Subtract from 1. 
 conc_lead_geo = 1 - conc_lead_geo; 
 
+% Add up total length of specular leads
+conc_spec_geo = accumarray(posloc_all,((fieldmat(:,7) > 1) .* (fieldmat(:,7) < 6)).*(fieldmat(:,2)),[numel(lat_X) 1],@sum);
+% Divide by total length of ice
+conc_spec_geo = conc_spec_geo ./ accumarray(posloc_all,(fieldmat(:,7) > 0).*(fieldmat(:,2)),[numel(lat_X) 1],@sum);
+% Subtract from 1
+conc_spec_geo = 1 - conc_spec_geo; 
+
 conc_SSMI_geo = accumarray(posloc_all,fieldmat(:,end),[numel(lat_X) 1],@mean);
+
+%% Compute number of segments intersecting a region
+
+
 
 %% Now Wave Code
 
@@ -357,6 +374,9 @@ if DO_WAVE
     % Included points have positive points nearby, aren't too long, and are
     % identified as ice. Criteria I1-I2.
     is_included = logical(not_too_long .* is_ice .* close_to_positive);
+    
+    % Included points have positive points nearby, and aren't too long. Criteria I1.
+    is_included_lead = logical(not_too_long .* close_to_positive);
     
     % Wave candidates are those i|ncluded segs close to ssh points, and
     % close to other negative values.
@@ -419,7 +439,10 @@ if DO_WAVE
     
     %% Accumulate all values that are below zero into the chosen lat-lon array
     
-    conc_wave_geo = accumarray(posloc_all,is_included,[numel(lat_X) 1],@mean);
+    % Take the points that are ok to use - numerator is ice points,
+    % denominator is all points (not too long and close to ice)
+    conc_wave_geo = accumarray(posloc_all,is_included.*fieldmat(:,2),[numel(lat_X) 1],@sum) ./ ...
+    accumarray(posloc_all,is_included_lead.*fieldmat(:,2),[numel(lat_X) 1],@sum);
     
     % This adds up all measurements that are reasonable
     num_meas_geo = accumarray(posloc_all,is_included,[numel(lat_X) 1],@sum);
