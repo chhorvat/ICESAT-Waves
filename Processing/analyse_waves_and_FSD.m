@@ -439,6 +439,10 @@ if DO_WAVE
     
     %% Accumulate all values that are below zero into the chosen lat-lon array
     
+  % Look at average freeboard
+    height_adjusted_geo = accumarray(posloc_all,is_included.*fieldmat(:,2).*fieldmat(:,1),[numel(lat_X) 1],@sum) ./ ...
+        accumarray(posloc_all,is_included.*fieldmat(:,2),[numel(lat_X) 1],@sum);
+  
     % Take the points that are ok to use - numerator is ice points,
     % denominator is all points (not too long and close to ice)
     conc_wave_geo = accumarray(posloc_all,is_included.*fieldmat(:,2),[numel(lat_X) 1],@sum) ./ ...
